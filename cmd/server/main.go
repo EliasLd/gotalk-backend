@@ -1,21 +1,35 @@
 package main
 
 import (
-	"fmt"
 	"log"
 	"net/http"
+	"os"
 
+	"github.com/joho/godotenv"
+
+	"github.com/EliasLd/gotalk-backend/internal/database"
 	"github.com/EliasLd/gotalk-backend/internal/handlers"
 )
 
 func main() {
-	mux := http.NewServeMux()
 
+	if err := godotenv.Load(); err != nil {
+		log.Println(".env file not found, pursuing with system environment variables")
+	}
+
+	if err := database.Connect(); err != nil {
+		log.Fatalf("Failed to connect to database: %v", err)
+	}
+	defer database.Close()
+
+	mux := http.NewServeMux()
 	mux.HandleFunc("/health", handlers.HealthHandler)
 
-	port := ":8080"
-	fmt.Printf("Server running on http://localhost%s\n", port)
-	if err := http.ListenAndServe(port, mux); err != nil {
+	port := os.Getenv("PORT")
+	addr := ":" + port
+	log.Printf("Server running on http://localhost%s\n", addr)
+
+	if err := http.ListenAndServe(addr, mux); err != nil {
 		log.Fatalf("Server failed: %v", err)
 	}
 }

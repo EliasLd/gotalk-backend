@@ -38,6 +38,15 @@ func setupTest(t *testing.T) UserRepository {
 
 }
 
+// Helper function used to clean database by deleting a newly added user
+func cleanUpUser(t *testing.T, id uuid.UUID, repo UserRepository) {
+	t.Logf("Now deleting the newly added user...")
+	err := repo.DeleteUser(context.Background(), id)
+	if err != nil {
+		t.Logf("Warning: failed to clean up user: %v", err)
+	}
+}
+
 func TestCreateUser(t *testing.T) {
 	repo := setupTest(t)
 
@@ -49,9 +58,39 @@ func TestCreateUser(t *testing.T) {
 		CreatedAt:	time.Now(),
 		UpdatedAt:	time.Now(),
 	}
+	
+	// Clean up at test end
+	defer cleanUpUser(t, user.ID, repo)
 
 	if err := repo.CreateUser(context.Background(), user); err != nil {
 		t.Errorf("Failed to create user: %v", err)
+	}
+
+	t.Logf("User added successfully")
+}
+
+func TestDeleteUser(t *testing.T) {
+	repo := setupTest(t)
+
+		user := &models.User{
+		ID:		uuid.New(),
+		Username:	"testuser_delete",
+		Password:	"testpasswordhash",
+		CreatedAt:	time.Now(),
+		UpdatedAt:	time.Now(),
+	}
+
+	if err := repo.CreateUser(context.Background(), user); err != nil {
+		t.Fatalf("Failed to create user: %v", err)
+	}
+
+	if err := repo.DeleteUser(context.Background(), user.ID); err != nil {
+		t.Fatalf("Failed to delete user: %v", err)
+	}
+
+	_, err := repo.GetUserByUsername(context.Background(), user.Username)
+	if err == nil {
+		t.Errorf("Expected error when fetching deleted user, got nil")
 	}
 }
 
@@ -66,15 +105,9 @@ func TestGetUserByUsername(t *testing.T) {
 		CreatedAt:	time.Now(),
 		UpdatedAt:	time.Now(),
 	}
-
+	
 	// Clean up at test end
-	defer func() {
-		t.Logf("Now deleting the newly added user...")
-		err := repo.DeleteUser(context.Background(), user.ID)
-		if err != nil {
-			t.Logf("Warning: failed to clean up user: %v", err)
-		}
-	}()
+	defer cleanUpUser(t, user.ID, repo)
 
 	if err := repo.CreateUser(context.Background(), user); err != nil {
 		t.Errorf("Failed to create user: %v", err)

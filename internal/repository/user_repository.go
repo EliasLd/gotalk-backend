@@ -10,6 +10,7 @@ import (
 // Contract for any kind of user data access implementation.
 type UserRepository interface {
 	CreateUser(ctx context.Context, user *models.User) error
+	GetUserByUsername(ctx context.Context, username string) (*models.User, error)
 }
 
 // Concrete implementation of UserRepository
@@ -38,4 +39,28 @@ func (r *userRepository) CreateUser(ctx context.Context, user *models.User) erro
 	)
 
 	return err
+}
+
+// Retrieves a user by its username
+func (r *userRepository) GetUserByUsername(ctx context.Context, username string ) (*models.User, error) {
+	query := `
+		SELECT id, username, password_hash, created_at, updated_at
+		FROM users
+		WHERE username = $1
+	`
+
+	var user models.User
+	err := r.db.QueryRow(ctx, query, username).Scan(
+		&user.ID,
+		&user.Username,
+		&user.Password,
+		&user.CreatedAt,
+		&user.UpdatedAt,
+	)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return &user, nil
 }

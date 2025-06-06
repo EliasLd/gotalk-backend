@@ -16,11 +16,14 @@ import (
 // .env file should be located in the project's root directory
 var env_file_path string = "../../.env"
 
-func TestCreateUser(t *testing.T) {
+// Helper function used to prepare the testing environment
+func setupTest(t *testing.T) UserRepository {
+	t.Helper()
+
 	if err := godotenv.Load(env_file_path); err != nil {
-		t.Fatalf("Failed to read environment variables")
+		t.Fatalf("Failed to load environment variables from %s", env_file_path)
 	}
-	
+
 	dbURL := os.Getenv("DATABASE_URL")
 	if dbURL == "" {
 		t.Fatalf("DATABASE_URL env var is empty")
@@ -31,7 +34,12 @@ func TestCreateUser(t *testing.T) {
 		t.Fatalf("Failed to connect to database: %v", err)
 	}
 
-	repo := NewUserRepository(database.DB)
+	return NewUserRepository(database.DB)
+
+}
+
+func TestCreateUser(t *testing.T) {
+	repo := setupTest(t)
 
 	// Test user
 	user := &models.User{
@@ -44,5 +52,35 @@ func TestCreateUser(t *testing.T) {
 
 	if err := repo.CreateUser(context.Background(), user); err != nil {
 		t.Errorf("Failed to create user: %v", err)
+	}
+}
+
+func TestGetUserByUsername(t *testing.T) {
+	repo :=  setupTest(t)
+
+	username := "testuser_lookup"
+	user := &models.User{
+		ID:		uuid.New(),
+		Username:	username,
+		Password:	"testpasswordhash",
+		CreatedAt:	time.Now(),
+		UpdatedAt:	time.Now(),
+	}
+
+	if err := repo.CreateUser(context.Background(), user); err != nil {
+		t.Errorf("Failed to create user: %v", err)
+	}
+
+	found, err := repo.GetUserByUsername(context.Background(), username)
+	if err != nil {
+		t.Fatalf("GetUserByUsername failed: %v", err)
+	}
+
+	if found == nil {
+		t.Fatal("Expected user but got nil")
+	}
+
+	if found.ID != user.ID {
+		t.Errorf("Expected ID %v, got %v", user.ID, found.ID)
 	}
 }

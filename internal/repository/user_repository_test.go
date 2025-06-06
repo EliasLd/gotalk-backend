@@ -67,6 +67,15 @@ func TestGetUserByUsername(t *testing.T) {
 		UpdatedAt:	time.Now(),
 	}
 
+	// Clean up at test end
+	defer func() {
+		t.Logf("Now deleting the newly added user...")
+		err := repo.DeleteUser(context.Background(), user.ID)
+		if err != nil {
+			t.Logf("Warning: failed to clean up user: %v", err)
+		}
+	}()
+
 	if err := repo.CreateUser(context.Background(), user); err != nil {
 		t.Errorf("Failed to create user: %v", err)
 	}
@@ -83,4 +92,6 @@ func TestGetUserByUsername(t *testing.T) {
 	if found.ID != user.ID {
 		t.Errorf("Expected ID %v, got %v", user.ID, found.ID)
 	}
+
+	t.Logf("Usernames are matching")
 }

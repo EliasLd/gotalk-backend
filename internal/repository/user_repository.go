@@ -5,12 +5,14 @@ import (
 	
 	"github.com/EliasLd/gotalk-backend/internal/models"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/google/uuid"
 )
 
 // Contract for any kind of user data access implementation.
 type UserRepository interface {
 	CreateUser(ctx context.Context, user *models.User) error
 	GetUserByUsername(ctx context.Context, username string) (*models.User, error)
+	DeleteUser(ctx context.Context, id uuid.UUID) error
 }
 
 // Concrete implementation of UserRepository
@@ -63,4 +65,10 @@ func (r *userRepository) GetUserByUsername(ctx context.Context, username string 
 	}
 
 	return &user, nil
+}
+
+func (r *userRepository) DeleteUser(ctx context.Context, id uuid.UUID) error {
+	query := `DELETE FROM users WHERE id = $1`
+	_, err := r.db.Exec(ctx, query, id)
+	return err
 }

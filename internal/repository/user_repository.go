@@ -1,6 +1,7 @@
 package repository
 
 import (
+	"fmt"
 	"context"
 	
 	"github.com/EliasLd/gotalk-backend/internal/models"
@@ -13,6 +14,7 @@ type UserRepository interface {
 	CreateUser(ctx context.Context, user *models.User) error
 	GetUserByUsername(ctx context.Context, username string) (*models.User, error)
 	DeleteUser(ctx context.Context, id uuid.UUID) error
+	GetUserByID(ctx context.Context, id uuid.UUID) (*models.User, error)
 }
 
 // Concrete implementation of UserRepository
@@ -69,6 +71,38 @@ func (r *userRepository) GetUserByUsername(ctx context.Context, username string 
 
 func (r *userRepository) DeleteUser(ctx context.Context, id uuid.UUID) error {
 	query := `DELETE FROM users WHERE id = $1`
-	_, err := r.db.Exec(ctx, query, id)
-	return err
+	result , err := r.db.Exec(ctx, query, id)
+	
+	if err != nil {
+		return err
+	}
+
+	if result.RowsAffected() == 0 {
+		return fmt.Errorf("no user found with id: %s", id)
+	}
+
+	return nil
+}
+
+func (r *userRepository) GetUserByID(ctx context.Context, id uuid.UUID) (*models.User, error) {
+	query := `
+		SELECT id, username, password_hash, created_at, updated_at
+		FROM users
+		WHERE id = $1
+	`
+
+	var user models.User
+	err := r.db.QueryRow(ctx, query, id).Scan(
+		&user.ID,
+		&user.Username,
+		&user.Password,
+		&user.CreatedAt,
+		&user.UpdatedAt,
+	)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return &user, nil
 }

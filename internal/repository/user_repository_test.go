@@ -47,18 +47,22 @@ func cleanUpUser(t *testing.T, id uuid.UUID, repo UserRepository) {
 	}
 }
 
-func TestCreateUser(t *testing.T) {
-	repo := setupTest(t)
-
-	// Test user
-	user := &models.User{
+// Helper function used to create a new user for each test
+func newTestUser(t *testing.T, username string) *models.User {
+	t.Helper()
+	return &models.User {
 		ID:		uuid.New(),
-		Username:	"testuser",
-		Password:	"testpasswordhash",
+		Username:	username,
+		Password:	"some_password",
 		CreatedAt:	time.Now(),
 		UpdatedAt:	time.Now(),
 	}
-	
+}
+
+func TestCreateUser(t *testing.T) {
+	repo := setupTest(t)
+
+	user := newTestUser(t, "testuser_create")	
 	// Clean up at test end
 	defer cleanUpUser(t, user.ID, repo)
 
@@ -72,13 +76,7 @@ func TestCreateUser(t *testing.T) {
 func TestDeleteUser(t *testing.T) {
 	repo := setupTest(t)
 
-		user := &models.User{
-		ID:		uuid.New(),
-		Username:	"testuser_delete",
-		Password:	"testpasswordhash",
-		CreatedAt:	time.Now(),
-		UpdatedAt:	time.Now(),
-	}
+	user := newTestUser(t, "testuser_delete")
 
 	if err := repo.CreateUser(context.Background(), user); err != nil {
 		t.Fatalf("Failed to create user: %v", err)
@@ -92,20 +90,19 @@ func TestDeleteUser(t *testing.T) {
 	if err == nil {
 		t.Errorf("Expected error when fetching deleted user, got nil")
 	}
+
+	nonExistentID := uuid.New()
+	err = repo.DeleteUser(context.Background(), nonExistentID)
+	if err == nil {
+		t.Errorf("Expected error when deleteing non-existent user, got nil")
+	}
 }
 
 func TestGetUserByUsername(t *testing.T) {
 	repo :=  setupTest(t)
 
-	username := "testuser_lookup"
-	user := &models.User{
-		ID:		uuid.New(),
-		Username:	username,
-		Password:	"testpasswordhash",
-		CreatedAt:	time.Now(),
-		UpdatedAt:	time.Now(),
-	}
-	
+	user := newTestUser(t, "testuser_lookup_by_username")
+
 	// Clean up at test end
 	defer cleanUpUser(t, user.ID, repo)
 
@@ -113,7 +110,7 @@ func TestGetUserByUsername(t *testing.T) {
 		t.Errorf("Failed to create user: %v", err)
 	}
 
-	found, err := repo.GetUserByUsername(context.Background(), username)
+	found, err := repo.GetUserByUsername(context.Background(), user.Username)
 	if err != nil {
 		t.Fatalf("GetUserByUsername failed: %v", err)
 	}
@@ -127,4 +124,50 @@ func TestGetUserByUsername(t *testing.T) {
 	}
 
 	t.Logf("Usernames are matching")
+}
+
+func TestGetUserByID(t *testing.T) {
+	repo := setupTest(t)
+
+	user := newTestUser(t, "testuser_lookup_by_id")
+	
+	defer cleanUpUser(t, user.ID, repo)
+
+	if err := repo.CreateUser(context.Background(), user); err != nil {
+		t.Errorf("Failed to create user: %v", user)
+	}
+
+	found, err := repo.GetUserByID(context.Background(), user.ID)
+	if err != nil {
+		t.Fatalf("GetUserByID failed: %v", err)
+	}
+
+	if found == nil {
+		t.Fatal("Expected user, got nil")
+	}
+
+	if found.ID != user.ID {
+		t.Errorf("Expected ID %v, got %v", user.ID, found.ID)
+	}
+
+	t.Logf("IDs are matching")
+}
+
+func TestCreateUserSameUsername(t *testing.T) {
+	repo := setupTest(t)
+
+	user1 := newTestUser(t, "same_name")
+	user2 := newTestUser(t, "same_name")
+
+	defer cleanUpUser(t, user1.ID, repo)
+	// Should log a warning because user2 is never created
+	defer cleanUpUser(t, user2.ID, repo)
+
+	if err := repo.CreateUser(context.Background(), user1); err != nil {
+		t.Errorf("Failed to create user: %v", err)
+	}
+
+	if err := repo.CreateUser(context.Background(), user2); err == nil {
+		t.Errorf("Expected error when adding second user with the same name")
+	}
 }

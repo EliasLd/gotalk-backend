@@ -43,6 +43,10 @@ func (s *userService) RegisterUser(ctx context.Context, username, password strin
 		return nil, errors.ErrUserAlreadyExists
 	}
 
+	if err := ValidatePassword(password); err != nil {
+		return nil, err
+	}
+
 	hashedPassword, err := hashPassword(password)
 	if err != nil {
 		return nil, errors.ErrPasswordHashingFailed

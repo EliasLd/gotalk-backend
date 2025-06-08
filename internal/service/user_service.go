@@ -13,6 +13,9 @@ import (
 // Defines business logic operations related to users.
 type UserService interface {
 	RegisterUser(ctx context.Context, username, password string) (*models.User, error)
+	GetUserByID(ctx context.Context, id uuid.UUID) (*models.User, error)
+	GetUserByUsername(ctx context.Context, username string) (*models.User, error)
+	DeleteUser(ctx context.Context, id uuid.UUID) error
 }
 
 // Concrete implementation of UserService.
@@ -48,5 +51,18 @@ func (s *userService) RegisterUser(ctx context.Context, username, password strin
 
 	return user, nil
 }
+
+func (s *userService) GetUserByID(ctx context.Context, id uuid.UUID) (*models.User, error) {
+	return s.repo.GetUserByID(ctx, id)
+}
+
+func (s *userService) GetUserByUsername(ctx context.Context, username string) (*models.User, error) {
+	return s.repo.GetUserByUsername(ctx, username)
+}
+
+func (s *userService) DeleteUser(ctx context.Context, id uuid.UUID) error {
+	return s.repo.DeleteUser(ctx, id)
+}
+
 
 

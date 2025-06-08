@@ -8,6 +8,7 @@ import (
 	"github.com/EliasLd/gotalk-backend/internal/repository"
 	"github.com/EliasLd/gotalk-backend/internal/service/errors"
 	"github.com/google/uuid"
+	"golang.org/x/crypto/bcrypt"
 )
 
 // Defines business logic operations related to users.
@@ -28,14 +29,24 @@ func NewUserService(repo repository.UserRepository) UserService {
 	return &userService{repo: repo}
 }
 
+func hashPassword(password string) (string, error) {
+	hashed, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+	if err != nil {
+		return "", err
+	}
+	return string(hashed), nil
+}
+
 func (s *userService) RegisterUser(ctx context.Context, username, password string) (*models.User, error) {
 	existingUser, err := s.repo.GetUserByUsername(context.Background(), username)
 	if err == nil && existingUser != nil {
 		return nil, errors.ErrUserAlreadyExists
 	}
 
-	// TODO: Add password hash here
-	hashedPassword := password
+	hashedPassword, err := hashPassword(password)
+	if err != nil {
+		return nil, errors.ErrPasswordHashingFailed
+	}
 
 	user := &models.User {
 		ID:		uuid.New(),

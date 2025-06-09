@@ -5,7 +5,7 @@ import "errors"
 var (
 	// User related 
 	ErrUserAlreadyExists	= errors.New("user already exists")
-	ErrUserNotFounsd 	= errors.New("user not found")
+	ErrUserNotFound 	= errors.New("user not found")
 
 	// Password hashing
 	ErrPasswordHashingFailed = errors.New("failed to hash password")

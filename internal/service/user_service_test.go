@@ -66,3 +66,55 @@ func TestRegisterUser_UsernameAlreadyExists(t *testing.T) {
 		t.Errorf("Expected no user, got %v", newUser)
 	}
 }
+
+// Table-driven tests to check all password validation errors
+func TestRegisterUser_InvalidPasswords(t *testing.T) {
+	s := setupService(t)
+	username := "weakuser"
+
+	tests := []struct {
+		name		string
+		password	string
+		wantErr 	error
+	}{
+		{
+			name:     "Too short",
+			password: "Aa1!",
+			wantErr:  errors.ErrPasswordTooShort,
+		},
+		{
+			name:     "Missing digit",
+			password: "Aa!abcdefgh",
+			wantErr:  errors.ErrPasswordMissingDigit,
+		},
+		{
+			name:     "Missing uppercase",
+			password: "abcde1234!",
+			wantErr:  errors.ErrPasswordMissingUpper,
+		},
+		{
+			name:     "Missing lowercase",
+			password: "ABCDE1234!",
+			wantErr:  errors.ErrPasswordMissingLower,
+		},
+		{
+			name:     "Missing symbol",
+			password: "Abcdef1234",
+			wantErr:  errors.ErrPasswordMissingSymbol,
+		},
+	}
+
+	for _, test_case := range tests {
+		t.Run(test_case.name, func(t *testing.T) {
+			_, err := s.RegisterUser(context.Background(), username + "_" + test_case.name, test_case.password)
+
+			if err == nil {
+				t.Fatalf("Expected error %v, got nil", test_case.wantErr)
+			}
+			if err != test_case.wantErr {
+				t.Errorf("Expected error %v, got %v", test_case.wantErr, err)
+			}
+		})
+	}
+}
+

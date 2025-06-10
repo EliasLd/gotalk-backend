@@ -6,6 +6,7 @@ import (
 
 	"github.com/EliasLd/gotalk-backend/internal/repository"
 	"github.com/EliasLd/gotalk-backend/internal/service/errors"
+	"github.com/google/uuid"
 )
 
 // Test object used to safely access user repository
@@ -139,6 +140,22 @@ func TestGetUserByID_Success(t *testing.T) {
 	}
 }
 
+func TestGetUserByID_Bad_ID(t *testing.T) {
+	s := setupService(t)
+
+	randomID := uuid.New()
+
+	user, err := s.GetUserByID(context.Background(), randomID)
+
+	if err == nil {
+		t.Error("Expected an error when retrieving non-existent user, got nil")
+	}
+	if user != nil {
+		t.Errorf("Expeceted no user, got %v", user)
+	}
+}
+
+
 func TestGetUserByUsername_Success(t *testing.T) {
 	s := setupService(t)
 
@@ -179,5 +196,17 @@ func TestDeleteUser_Success(t *testing.T) {
 	found, err := s.GetUserByID(context.Background(), user.ID)
 	if err == nil && found != nil {
 		t.Errorf("Expected error or nil user after deletion, got user: %v", found)
+	}
+}
+
+func TestDeleteUser_Not_Found(t *testing.T) {
+	s := setupService(t)
+
+	randomID := uuid.New()
+
+	err := s.DeleteUser(context.Background(), randomID)
+
+	if err == nil {
+		t.Error("Expected an error when deleting non-existent user, got nil")
 	}
 }

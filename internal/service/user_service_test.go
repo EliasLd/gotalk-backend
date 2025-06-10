@@ -160,3 +160,24 @@ func TestGetUserByUsername_Success(t *testing.T) {
 	}
 }
 
+func TestDeleteUser_Success(t *testing.T) {
+	s := setupService(t)
+
+	username := "testuser_delete"
+	password := "ValidPass123!"
+
+	user, err := s.RegisterUser(context.Background(), username, password)
+	if err != nil {
+		t.Fatalf("Failed to register user: %v", err)
+	}
+
+	if err := s.DeleteUser(context.Background(), user.ID); err != nil {
+		t.Fatalf("Failed to delete user: %v", err)
+	}
+
+	// Confirm user no longer exists
+	found, err := s.GetUserByID(context.Background(), user.ID)
+	if err == nil && found != nil {
+		t.Errorf("Expected error or nil user after deletion, got user: %v", found)
+	}
+}

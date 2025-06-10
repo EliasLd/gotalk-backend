@@ -118,3 +118,45 @@ func TestRegisterUser_InvalidPasswords(t *testing.T) {
 	}
 }
 
+func TestGetUserByID_Success(t *testing.T) {
+	s := setupService(t)
+
+	username := "testuser_by_id"
+	password := "ValidPass123!"
+
+	user, err := s.RegisterUser(context.Background(), username, password)
+	if err != nil {
+		t.Fatalf("Failed to register user: %v", err)
+	}
+	defer repository.CleanUpUser(t, user.ID, s.repo)
+
+	found, err := s.GetUserByID(context.Background(), user.ID)
+	if err != nil {
+		t.Fatalf("Expected no error, got: %v", err)
+	}
+	if found == nil || found.ID != user.ID {
+		t.Errorf("Expected user ID %vn got %v", user.ID, found.ID)
+	}
+}
+
+func TestGetUserByUsername_Success(t *testing.T) {
+	s := setupService(t)
+
+	username := "testuser_by_username"
+	password := "ValidPass123!"
+
+	user, err := s.RegisterUser(context.Background(), username, password)
+	if err != nil {
+		t.Fatalf("Failed to register user: %v", err)
+	}
+	defer repository.CleanUpUser(t, user.ID, s.repo)
+
+	found, err := s.GetUserByUsername(context.Background(), username)
+	if err != nil {
+		t.Fatalf("Expected no error, got: %v", err)
+	}
+	if found == nil || found.Username != username {
+		t.Errorf("Expected username %v, got %v", username, found.Username)
+	}
+}
+

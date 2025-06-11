@@ -1,70 +1,18 @@
 package repository
 
 import (
-	"fmt"
 	"context"
 	"testing"
-	"time"
-	"os"
 
-	"github.com/EliasLd/gotalk-backend/internal/models"
-	"github.com/EliasLd/gotalk-backend/internal/database"
 	"github.com/google/uuid"
-	"github.com/joho/godotenv"
 )
 
-// .env file should be located in the project's root directory
-var env_file_path string = "../../.env"
-
-// Helper function used to prepare the testing environment
-func setupTest(t *testing.T) UserRepository {
-	t.Helper()
-
-	if err := godotenv.Load(env_file_path); err != nil {
-		t.Fatalf("Failed to load environment variables from %s", env_file_path)
-	}
-
-	dbURL := os.Getenv("DATABASE_URL")
-	if dbURL == "" {
-		t.Fatalf("DATABASE_URL env var is empty")
-	}
-	fmt.Println("Using DATABASE_URL: ", dbURL)
-
-	if err := database.Connect(); err != nil {
-		t.Fatalf("Failed to connect to database: %v", err)
-	}
-
-	return NewUserRepository(database.DB)
-
-}
-
-// Helper function used to clean database by deleting a newly added user
-func cleanUpUser(t *testing.T, id uuid.UUID, repo UserRepository) {
-	t.Logf("Now deleting the newly added user...")
-	err := repo.DeleteUser(context.Background(), id)
-	if err != nil {
-		t.Logf("Warning: failed to clean up user: %v", err)
-	}
-}
-
-// Helper function used to create a new user for each test
-func newTestUser(t *testing.T, username string) *models.User {
-	t.Helper()
-	return &models.User {
-		ID:		uuid.New(),
-		Username:	username,
-		Password:	"some_password",
-		CreatedAt:	time.Now(),
-		UpdatedAt:	time.Now(),
-	}
-}
-
 func TestCreateUser(t *testing.T) {
-	repo := setupTest(t)
+	repo := SetupTest(t)
 
-	user := newTestUser(t, "testuser_create")	
+	user := NewTestUser(t, "testuser_create")	
 	// Clean up at test end
-	defer cleanUpUser(t, user.ID, repo)
+	defer CleanUpUser(t, user.ID, repo)
 
 	if err := repo.CreateUser(context.Background(), user); err != nil {
 		t.Errorf("Failed to create user: %v", err)
@@ -74,9 +22,9 @@ func TestCreateUser(t *testing.T) {
 }
 
 func TestDeleteUser(t *testing.T) {
-	repo := setupTest(t)
+	repo := SetupTest(t)
 
-	user := newTestUser(t, "testuser_delete")
+	user := NewTestUser(t, "testuser_delete")
 
 	if err := repo.CreateUser(context.Background(), user); err != nil {
 		t.Fatalf("Failed to create user: %v", err)
@@ -99,12 +47,12 @@ func TestDeleteUser(t *testing.T) {
 }
 
 func TestGetUserByUsername(t *testing.T) {
-	repo :=  setupTest(t)
+	repo :=  SetupTest(t)
 
-	user := newTestUser(t, "testuser_lookup_by_username")
+	user := NewTestUser(t, "testuser_lookup_by_username")
 
 	// Clean up at test end
-	defer cleanUpUser(t, user.ID, repo)
+	defer CleanUpUser(t, user.ID, repo)
 
 	if err := repo.CreateUser(context.Background(), user); err != nil {
 		t.Errorf("Failed to create user: %v", err)
@@ -127,11 +75,11 @@ func TestGetUserByUsername(t *testing.T) {
 }
 
 func TestGetUserByID(t *testing.T) {
-	repo := setupTest(t)
+	repo := SetupTest(t)
 
-	user := newTestUser(t, "testuser_lookup_by_id")
+	user := NewTestUser(t, "testuser_lookup_by_id")
 	
-	defer cleanUpUser(t, user.ID, repo)
+	defer CleanUpUser(t, user.ID, repo)
 
 	if err := repo.CreateUser(context.Background(), user); err != nil {
 		t.Errorf("Failed to create user: %v", user)
@@ -154,14 +102,14 @@ func TestGetUserByID(t *testing.T) {
 }
 
 func TestCreateUserSameUsername(t *testing.T) {
-	repo := setupTest(t)
+	repo := SetupTest(t)
 
-	user1 := newTestUser(t, "same_name")
-	user2 := newTestUser(t, "same_name")
+	user1 := NewTestUser(t, "same_name")
+	user2 := NewTestUser(t, "same_name")
 
-	defer cleanUpUser(t, user1.ID, repo)
+	defer CleanUpUser(t, user1.ID, repo)
 	// Should log a warning because user2 is never created
-	defer cleanUpUser(t, user2.ID, repo)
+	defer CleanUpUser(t, user2.ID, repo)
 
 	if err := repo.CreateUser(context.Background(), user1); err != nil {
 		t.Errorf("Failed to create user: %v", err)

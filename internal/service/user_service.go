@@ -24,6 +24,11 @@ type userService struct {
 	repo repository.UserRepository
 }
 
+type UpdateUserInput struct {
+	Username *string
+	Password *string
+}
+
 // Creates a new UserService instance.
 func NewUserService(repo repository.UserRepository) UserService {
 	return &userService{repo: repo}

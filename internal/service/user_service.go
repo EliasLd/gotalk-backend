@@ -17,11 +17,17 @@ type UserService interface {
 	GetUserByID(ctx context.Context, id uuid.UUID) (*models.User, error)
 	GetUserByUsername(ctx context.Context, username string) (*models.User, error)
 	DeleteUser(ctx context.Context, id uuid.UUID) error
+	UpdateUser(ctx context.Context, id uuid.UUID, input UpdateUserInput) (*models.User, error)
 }
 
 // Concrete implementation of UserService.
 type userService struct {
 	repo repository.UserRepository
+}
+
+type UpdateUserInput struct {
+	Username *string
+	Password *string
 }
 
 // Creates a new UserService instance.
@@ -79,5 +85,34 @@ func (s *userService) DeleteUser(ctx context.Context, id uuid.UUID) error {
 	return s.repo.DeleteUser(ctx, id)
 }
 
+func (s *userService) UpdateUser(ctx context.Context, id uuid.UUID, input UpdateUserInput) (*models.User, error) {
+	user, err := s.repo.GetUserByID(ctx, id)
+	if err != nil {
+		return nil, err
+	}
 
+	if input.Username != nil {
+		user.Username = *input.Username
+	}
 
+	if input.Password != nil {
+		if err := ValidatePassword(*input.Password); err != nil {
+			return nil, err
+		}
+
+		hashedPassword, err := hashPassword(*input.Password)
+		if err != nil {
+			return nil, errors.ErrPasswordHashingFailed
+		}
+
+		user.Password = hashedPassword
+	}
+
+	user.UpdatedAt = time.Now()
+
+	if err := s.repo.UpdateUser(ctx, user); err != nil {
+		return nil, err
+	}
+
+	return user, nil
+}

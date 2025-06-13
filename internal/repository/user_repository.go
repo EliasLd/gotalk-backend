@@ -15,6 +15,7 @@ type UserRepository interface {
 	GetUserByUsername(ctx context.Context, username string) (*models.User, error)
 	DeleteUser(ctx context.Context, id uuid.UUID) error
 	GetUserByID(ctx context.Context, id uuid.UUID) (*models.User, error)
+	UpdateUser(ctx context.Context, user *models.User) error 
 }
 
 // Concrete implementation of UserRepository
@@ -105,4 +106,14 @@ func (r *userRepository) GetUserByID(ctx context.Context, id uuid.UUID) (*models
 	}
 
 	return &user, nil
+}
+
+func (r *userRepository) UpdateUser(ctx context.Context, user *models.User) error {
+	query := `
+		UPDATE users
+		SET username = $1, password_hash = $2, updated_at = $3
+		WHERE id = $4
+	`
+	_, err := r.db.Exec(ctx, query, user.Username, user.Password, user.UpdatedAt, user.ID)
+	return err
 }

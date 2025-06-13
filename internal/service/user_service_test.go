@@ -7,6 +7,7 @@ import (
 	"github.com/EliasLd/gotalk-backend/internal/repository"
 	"github.com/EliasLd/gotalk-backend/internal/service/errors"
 	"github.com/google/uuid"
+	"golang.org/x/crypto/bcrypt"
 )
 
 // Test object used to safely access user repository
@@ -208,5 +209,46 @@ func TestDeleteUser_Not_Found(t *testing.T) {
 
 	if err == nil {
 		t.Error("Expected an error when deleting non-existent user, got nil")
+	}
+}
+
+func TestUpdateUser(t *testing.T) {
+	s := setupService(t)
+
+	username := "testuser_update"
+	password := "ValidPass123!"
+
+	user, err := s.RegisterUser(context.Background(), username, password)
+	if err != nil {
+		t.Fatalf("Failed to register user: %v", err)
+	}
+
+	defer repository.CleanUpUser(t, user.ID, s.repo)
+
+	username = "testuser_new_user"
+	password = "newValidPass123!"
+
+	input := UpdateUserInput {
+		Username:	&username,
+		Password:	&password,
+	}
+
+	user, err = s.UpdateUser(context.Background(), user.ID, input)
+	if err != nil {
+		t.Fatalf("Failed to update user: %v", err)
+	}
+
+	check_user, err := s.GetUserByID(context.Background(), user.ID)
+	if err != nil {
+		t.Fatalf("Expected no error, got: %v", err)
+	}
+
+
+	if check_user.Username != username {
+		t.Errorf("Expected username to be updated to %s, got %s", username, check_user.Username)
+	}
+
+	if err := bcrypt.CompareHashAndPassword([]byte(check_user.Password), []byte(password)); err != nil {
+		t.Errorf("Password hash does not match new password: %v", err)
 	}
 }

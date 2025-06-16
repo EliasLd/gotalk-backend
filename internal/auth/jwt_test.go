@@ -24,3 +24,11 @@ func TestGenerateTokenAndValidateToken_Succes(t *testing.T) {
 	}
 }
 
+func TestValidateToken_InvalidToken(t *testing.T) {
+	invalidToken := "invalid.token"
+
+	_, err := ValidateToken(invalidToken)
+	if err == nil {
+		t.Fatal("Expected error for invalid token, got nil")
+	}
+}

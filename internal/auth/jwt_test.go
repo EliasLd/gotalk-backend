@@ -55,3 +55,19 @@ func TestValidateToken_ExpiredToken(t *testing.T) {
 		t.Fatal("expected error for expired token, got nil")
 	}
 }
+
+func TestValidateToken_WrongAlgorithm(t *testing.T) {
+	token := jwt.NewWithClaims(jwt.SigningMethodNone, &Claims{
+		UserID: uuid.New(),
+	})
+
+	signedToken, err := token.SignedString(jwt.UnsafeAllowNoneSignatureType)
+	if err != nil {
+		t.Fatalf("Error signing token with 'none': %v", err)
+	}
+
+	_, err = ValidateToken(signedToken)
+	if err == nil {
+		t.Fatal("Expected error for token with wrong algorithm, got nil")
+	}
+}

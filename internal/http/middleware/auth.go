@@ -33,3 +33,9 @@ func AuthMiddleWare(next http.Handler) http.Handler {
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }
+
+// Returns user's ID from context
+func UserIDFromContext(ctx context.Context) (string, bool) {
+	userID, ok := ctx.Value(userIDKey).(string)
+	return userID, ok
+}

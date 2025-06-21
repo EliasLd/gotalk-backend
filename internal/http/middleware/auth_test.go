@@ -43,7 +43,7 @@ func TestAuthMiddleware_ValidToken(t *testing.T) {
 	req.Header.Set("Authorization", "Bearer " + token)
 
 	rr := httptest.NewRecorder()
-	handler := AuthMiddleWare(protectedHandler)
+	handler := AuthMiddleware(protectedHandler)
 
 	handler.ServeHTTP(rr, req)
 

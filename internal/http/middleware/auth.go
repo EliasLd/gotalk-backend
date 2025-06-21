@@ -11,7 +11,7 @@ import (
 const userIDKey string = "userID"
 
 // Middleware that checks JWT in authorization header
-func AuthMiddleWare(next http.Handler) http.Handler {
+func AuthMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		authHeader := r.Header.Get("Authorization")
 

@@ -51,3 +51,22 @@ func TestAuthMiddleware_ValidToken(t *testing.T) {
 		t.Fatalf("Expected status 200 OK, got %d", rr.Code)
 	}
 }
+
+func TestAuthMiddleware_InvalidToken(t *testing.T) {
+	protectedHandler := http.HandlerFunc(func(w http.ResponseWriter, r* http.Request) {
+		t.Errorf("Handler should not be called with invalide token")
+		w.WriteHeader(http.StatusOK)
+	})
+
+	req := httptest.NewRequest("GET", "/protected", nil)
+	req.Header.Set("Authorization", "Bearer invalidtoken")
+
+	rr := httptest.NewRecorder()
+	handler := AuthMiddleware(protectedHandler)
+
+	handler.ServeHTTP(rr, req)
+
+	if rr.Code != http.StatusUnauthorized {
+		t.Fatalf("Expected status 401 Unauthorized, got %d", rr.Code)
+	}
+}

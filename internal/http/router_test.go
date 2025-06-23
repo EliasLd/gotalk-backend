@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 //	apphttp "github.com/EliasLd/gotalk-backend/internal/http"
@@ -27,6 +28,8 @@ func TestGetMeRoute(t *testing.T) {
 		t.Fatalf("Failed to register user: %v", err)
 	}
 
+	defer repository.CleanUpUser(t, user.ID, repo)
+
 	token, err := auth.GenerateToken(user)
 	if err != nil {
 		t.Fatalf("Failed to generate token: %v", err)
@@ -49,5 +52,24 @@ func TestGetMeRoute(t *testing.T) {
 
 	if response["username"] != username {
 		t.Errorf("Expected username %s, got %s", username, response["username"])
+	}
+}
+
+func TestGetMe_Unauthorized(t *testing.T) {
+	repo := repository.SetupTest(t)
+	userService := service.NewUserService(repo)
+	handler := handlers.NewHandler(userService)
+	router := NewRouter(handler)
+
+	req := httptest.NewRequest("GET", "/me", nil)
+	rr := httptest.NewRecorder()
+	router.ServeHTTP(rr, req)
+
+	if rr.Code != http.StatusUnauthorized {
+		t.Fatalf("Expected 401 Unauthorized, got %d", rr.Code)
+	}
+
+	if !strings.Contains(rr.Body.String(), "Missing or invalid Authorization header") {
+		t.Errorf("Unexpected response body: %s", rr.Body.String())
 	}
 }

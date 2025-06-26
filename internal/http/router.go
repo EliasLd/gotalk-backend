@@ -12,6 +12,7 @@ func NewRouter(handler * handlers.Handler) http.Handler {
 
 	// Public routes
 	mux.HandleFunc("/health", handlers.HealthHandler)
+	mux.HandleFunc("/register", handler.HandleRegister)
 
 	// Private routes
 	mux.Handle("/me", middleware.AuthMiddleware(http.HandlerFunc(handler.HandleGetMe)))

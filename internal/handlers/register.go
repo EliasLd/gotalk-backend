@@ -3,10 +3,8 @@ package handlers
 import (
 	"encoding/json"
 	"net/http"
-	""
+	"errors"
 
-	"github.com/EliasLd/gotalk-backend/internal/models"
-	"github.com/EliasLd/gotalk-backend/internal/service"
 	appErr "github.com/EliasLd/gotalk-backend/internal/service/errors"
 )
 

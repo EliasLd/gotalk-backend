@@ -116,3 +116,45 @@ func TestRegisterRoute(t *testing.T) {
 	defer repository.CleanUpUser(t, userID, repo)
 
 }
+
+func TestRegisterRoute_UserAlreadyExists(t *testing.T) {
+	repo := repository.SetupTest(t)
+	userService := service.NewUserService(repo)
+	handler := handlers.NewHandler(userService)
+	router := NewRouter(handler)
+
+	username := "testuser_register_duplicate"
+	password := "ValidPasswd123!"
+
+	firstBody := `{"username":"` + username + `","password":"` + password + `"}`
+
+	firstReq := httptest.NewRequest("POST", "/register", strings.NewReader(firstBody))
+	firstReq.Header.Set("Content-Type", "application/json")
+	firstRec := httptest.NewRecorder()
+	router.ServeHTTP(firstRec, firstReq)
+
+	if firstRec.Code != http.StatusCreated {
+		t.Fatalf("Expected status 201 Created on first register, got %d", firstRec.Code)
+	}
+
+	secondReq := httptest.NewRequest("POST", "/register", strings.NewReader(firstBody))
+	secondReq.Header.Set("Content-Type", "application/json")
+	secondRec := httptest.NewRecorder()
+	router.ServeHTTP(secondRec, secondReq)
+
+	if secondRec.Code != http.StatusConflict {
+		t.Fatalf("Expected status 409 Conflict on duplicate register, got %d", secondRec.Code)
+	}
+
+	var response map[string]interface{}
+	if err := json.NewDecoder(firstRec.Body).Decode(&response); err != nil {
+		t.Fatalf("Failed to decode response: %v", err)
+	}
+
+	userID, err := uuid.Parse(response["id"].(string))
+	if err != nil {
+		t.Fatalf("Failed to parse user ID: %v", err)
+	}
+
+	defer repository.CleanUpUser(t, userID, repo)
+}

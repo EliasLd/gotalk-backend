@@ -146,15 +146,7 @@ func TestRegisterRoute_UserAlreadyExists(t *testing.T) {
 		t.Fatalf("Expected status 409 Conflict on duplicate register, got %d", secondRec.Code)
 	}
 
-	var response map[string]interface{}
-	if err := json.NewDecoder(firstRec.Body).Decode(&response); err != nil {
-		t.Fatalf("Failed to decode response: %v", err)
-	}
-
-	userID, err := uuid.Parse(response["id"].(string))
-	if err != nil {
-		t.Fatalf("Failed to parse user ID: %v", err)
-	}
+	userID := ParseUserIDFromResponse(t, firstRec.Body)
 
 	defer repository.CleanUpUser(t, userID, repo)
 }

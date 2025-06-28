@@ -12,6 +12,7 @@ import (
 	"github.com/EliasLd/gotalk-backend/internal/handlers"
 	"github.com/EliasLd/gotalk-backend/internal/service"
 	"github.com/EliasLd/gotalk-backend/internal/repository"
+	"github.com/google/uuid"
 
 )
 
@@ -71,5 +72,106 @@ func TestGetMe_Unauthorized(t *testing.T) {
 
 	if !strings.Contains(rr.Body.String(), "Missing or invalid Authorization header") {
 		t.Errorf("Unexpected response body: %s", rr.Body.String())
+	}
+}
+
+func TestRegisterRoute(t *testing.T) {
+	repo := repository.SetupTest(t)
+	userService := service.NewUserService(repo)
+	handler := handlers.NewHandler(userService)
+	router := NewRouter(handler)
+
+	username := "testuser_register"
+	password := "ValidPasswd123!"
+
+	reqBody := `{"username":"` + username + `","password":"` + password + `"}`
+
+	req := httptest.NewRequest("POST", "/register", strings.NewReader(reqBody))
+	req.Header.Set("Content-Type", "application/json")
+	rr := httptest.NewRecorder()
+	router.ServeHTTP(rr, req)
+
+	if rr.Code != http.StatusCreated {
+		t.Fatalf("Expected status 201 Created, got %d", rr.Code)
+	}
+
+	var response map[string]interface{}
+	if err := json.NewDecoder(rr.Body).Decode(&response); err != nil {
+		t.Fatalf("Failed to decode response: %v", err)
+	}
+
+	if response["username"] != username {
+		t.Errorf("Expected username %s, got %v", username, response["username"])
+	}
+
+	if response["id"] == "" || response["createdAt"] == "" {
+		t.Error("Expected non-empty ID and CreatedAt fields")
+	}
+
+	userID, err := uuid.Parse(response["id"].(string))
+	if err != nil {
+		t.Fatalf("Failed to parse user ID: %v", err)
+	}
+
+	defer repository.CleanUpUser(t, userID, repo)
+
+}
+
+func TestRegisterRoute_UserAlreadyExists(t *testing.T) {
+	repo := repository.SetupTest(t)
+	userService := service.NewUserService(repo)
+	handler := handlers.NewHandler(userService)
+	router := NewRouter(handler)
+
+	username := "testuser_register_duplicate"
+	password := "ValidPasswd123!"
+
+	firstBody := `{"username":"` + username + `","password":"` + password + `"}`
+
+	firstReq := httptest.NewRequest("POST", "/register", strings.NewReader(firstBody))
+	firstReq.Header.Set("Content-Type", "application/json")
+	firstRec := httptest.NewRecorder()
+	router.ServeHTTP(firstRec, firstReq)
+
+	if firstRec.Code != http.StatusCreated {
+		t.Fatalf("Expected status 201 Created on first register, got %d", firstRec.Code)
+	}
+
+	secondReq := httptest.NewRequest("POST", "/register", strings.NewReader(firstBody))
+	secondReq.Header.Set("Content-Type", "application/json")
+	secondRec := httptest.NewRecorder()
+	router.ServeHTTP(secondRec, secondReq)
+
+	if secondRec.Code != http.StatusConflict {
+		t.Fatalf("Expected status 409 Conflict on duplicate register, got %d", secondRec.Code)
+	}
+
+	userID := ParseUserIDFromResponse(t, firstRec.Body)
+
+	defer repository.CleanUpUser(t, userID, repo)
+}
+
+func TestRegisterRoute_InvalidPassword(t *testing.T) {
+	repo := repository.SetupTest(t)
+	userService := service.NewUserService(repo)
+	handler := handlers.NewHandler(userService)
+	router := NewRouter(handler)
+
+	username := "testuser_invalid_password"
+	invalidPassword := "abc"
+
+	reqBody := `{"username":"` + username + `","password":"` + invalidPassword + `"}`
+
+	req := httptest.NewRequest("POST", "/register", strings.NewReader(reqBody))
+	req.Header.Set("Content-Type", "application/json")
+	rr := httptest.NewRecorder()
+	router.ServeHTTP(rr, req)
+
+	if rr.Code != http.StatusBadRequest {
+		t.Fatalf("Expected status 400 Bad Request, got %d", rr.Code)
+	}
+
+	if !strings.Contains(rr.Body.String(), "password") {
+		t.Errorf("Expected error message to mention 'password', got: %s", rr.Body.String())
 	}
 }

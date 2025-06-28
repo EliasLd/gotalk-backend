@@ -150,3 +150,28 @@ func TestRegisterRoute_UserAlreadyExists(t *testing.T) {
 
 	defer repository.CleanUpUser(t, userID, repo)
 }
+
+func TestRegisterRoute_InvalidPassword(t *testing.T) {
+	repo := repository.SetupTest(t)
+	userService := service.NewUserService(repo)
+	handler := handlers.NewHandler(userService)
+	router := NewRouter(handler)
+
+	username := "testuser_invalid_password"
+	invalidPassword := "abc"
+
+	reqBody := `{"username":"` + username + `","password":"` + invalidPassword + `"}`
+
+	req := httptest.NewRequest("POST", "/register", strings.NewReader(reqBody))
+	req.Header.Set("Content-Type", "application/json")
+	rr := httptest.NewRecorder()
+	router.ServeHTTP(rr, req)
+
+	if rr.Code != http.StatusBadRequest {
+		t.Fatalf("Expected status 400 Bad Request, got %d", rr.Code)
+	}
+
+	if !strings.Contains(rr.Body.String(), "password") {
+		t.Errorf("Expected error message to mention 'password', got: %s", rr.Body.String())
+	}
+}

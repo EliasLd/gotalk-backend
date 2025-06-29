@@ -18,6 +18,7 @@ type UserService interface {
 	GetUserByUsername(ctx context.Context, username string) (*models.User, error)
 	DeleteUser(ctx context.Context, id uuid.UUID) error
 	UpdateUser(ctx context.Context, id uuid.UUID, input UpdateUserInput) (*models.User, error)
+	AuthenticateUser(ctx context.Context, username, password string) (*models.User, error)
 }
 
 // Concrete implementation of UserService.
@@ -116,3 +117,17 @@ func (s *userService) UpdateUser(ctx context.Context, id uuid.UUID, input Update
 
 	return user, nil
 }
+
+func (s *userService) AuthenticateUser(ctx context.Context, username, password string) (*models.User, error) {
+	user, err := s.repo.GetUserByUsername(ctx, username)
+	if err != nil || user == nil {
+		return nil, errors.ErrInvalidCredentials
+	}
+
+	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password)); err != nil {
+		return nil, errors.ErrInvalidCredentials
+	}
+
+	return user, nil
+}
+

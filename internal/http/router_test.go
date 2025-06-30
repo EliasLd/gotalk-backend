@@ -216,3 +216,60 @@ func TestLoginRoute(t *testing.T) {
 		t.Errorf("Expected non-empty token in response")
 	}
 }
+
+func TestLoginRouteFailures(t *testing.T) {
+	repo := repository.SetupTest(t)
+	userService := service.NewUserService(repo)
+	handler := handlers.NewHandler(userService)
+	router := NewRouter(handler)
+
+	username := "failing_user"
+	password := "ValidPasswd123!"
+	user, err := userService.RegisterUser(context.Background(), username, password)
+	if err != nil {
+		t.Fatalf("Failed to create user: %v", err)
+	}
+
+	defer repository.CleanUpUser(t, user.ID, repo)
+
+	tests := []struct{
+		name		string
+		body		string
+		expectedStatus	int
+	}{
+		{
+			name:		"Unknown user",
+			body:		`{"username":"unknown","password":"doesntmatter"}`,
+			expectedStatus:	http.StatusUnauthorized,
+		},
+		{
+			name:		"Wrong password",
+			body:           `{"username":"` + username + `","password":"WrongPassword1!"}`,
+			expectedStatus: http.StatusUnauthorized,
+		},
+		{
+			name:		"Malformed JSON",
+			body:		`{"username": "badjson", "password": }`,
+			expectedStatus:	http.StatusBadRequest,
+		},
+		{
+			name:		"Missing fields",
+			body:		`{"username": "no_password"}`,
+			expectedStatus:	http.StatusUnauthorized,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			req := httptest.NewRequest("POST", "/login", strings.NewReader(tt.body))
+			req.Header.Set("Content-Type", "application/json")
+			rr := httptest.NewRecorder()
+
+			router.ServeHTTP(rr, req)
+
+			if rr.Code != tt.expectedStatus {
+				t.Errorf("[%s] Expected status %d, got %d", tt.name, tt.expectedStatus, rr.Code)
+			}
+		})
+	}
+}

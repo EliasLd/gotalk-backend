@@ -6,6 +6,7 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"context"
 
 //	apphttp "github.com/EliasLd/gotalk-backend/internal/http"
 	"github.com/EliasLd/gotalk-backend/internal/auth"
@@ -173,5 +174,102 @@ func TestRegisterRoute_InvalidPassword(t *testing.T) {
 
 	if !strings.Contains(rr.Body.String(), "password") {
 		t.Errorf("Expected error message to mention 'password', got: %s", rr.Body.String())
+	}
+}
+
+func TestLoginRoute(t *testing.T) {
+	repo := repository.SetupTest(t)
+	userService := service.NewUserService(repo)
+	handler := handlers.NewHandler(userService)
+	router := NewRouter(handler)
+	
+	username := "testuser_login"
+	password := "ValidPasswd123!"
+
+	user, err := userService.RegisterUser(context.Background(), username, password)
+	if err != nil {
+		t.Fatalf("Failed to register user: %v", err)
+	}
+
+	defer repository.CleanUpUser(t, user.ID, repo)
+
+	reqBody := `{"username":"` + username + `","password":"` + password + `"}`
+
+	req := httptest.NewRequest("POST", "/login", strings.NewReader(reqBody))
+	req.Header.Set("Content-Type", "application/json")
+	rr := httptest.NewRecorder()
+
+	router.ServeHTTP(rr, req)
+
+	if rr.Code != http.StatusOK {
+		t.Fatalf("Expected status 200 OK, got %d", rr.Code)
+	}
+
+	var response map[string]interface{}
+	if err := json.NewDecoder(rr.Body).Decode(&response); err != nil {
+		t.Fatalf("Failed to decode response: %v", err)
+	}
+
+	// Check if token exists
+	token, ok := response["token"].(string)
+	if !ok || token == "" {
+		t.Errorf("Expected non-empty token in response")
+	}
+}
+
+func TestLoginRouteFailures(t *testing.T) {
+	repo := repository.SetupTest(t)
+	userService := service.NewUserService(repo)
+	handler := handlers.NewHandler(userService)
+	router := NewRouter(handler)
+
+	username := "failing_user"
+	password := "ValidPasswd123!"
+	user, err := userService.RegisterUser(context.Background(), username, password)
+	if err != nil {
+		t.Fatalf("Failed to create user: %v", err)
+	}
+
+	defer repository.CleanUpUser(t, user.ID, repo)
+
+	tests := []struct{
+		name		string
+		body		string
+		expectedStatus	int
+	}{
+		{
+			name:		"Unknown user",
+			body:		`{"username":"unknown","password":"doesntmatter"}`,
+			expectedStatus:	http.StatusUnauthorized,
+		},
+		{
+			name:		"Wrong password",
+			body:           `{"username":"` + username + `","password":"WrongPassword1!"}`,
+			expectedStatus: http.StatusUnauthorized,
+		},
+		{
+			name:		"Malformed JSON",
+			body:		`{"username": "badjson", "password": }`,
+			expectedStatus:	http.StatusBadRequest,
+		},
+		{
+			name:		"Missing fields",
+			body:		`{"username": "no_password"}`,
+			expectedStatus:	http.StatusUnauthorized,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			req := httptest.NewRequest("POST", "/login", strings.NewReader(tt.body))
+			req.Header.Set("Content-Type", "application/json")
+			rr := httptest.NewRecorder()
+
+			router.ServeHTTP(rr, req)
+
+			if rr.Code != tt.expectedStatus {
+				t.Errorf("[%s] Expected status %d, got %d", tt.name, tt.expectedStatus, rr.Code)
+			}
+		})
 	}
 }

@@ -6,6 +6,7 @@ var (
 	// User related 
 	ErrUserAlreadyExists	= errors.New("user already exists")
 	ErrUserNotFound 	= errors.New("user not found")
+	ErrInvalidCredentials	= errors.New("Invalid credentials")
 
 	// Password hashing
 	ErrPasswordHashingFailed = errors.New("failed to hash password")

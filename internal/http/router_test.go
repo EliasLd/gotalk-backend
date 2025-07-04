@@ -273,3 +273,49 @@ func TestLoginRouteFailures(t *testing.T) {
 		})
 	}
 }
+
+func TestUpdateMeRoute_Username(t *testing.T) {
+	repo := repository.SetupTest(t)
+	userService := service.NewUserService(repo)
+	handler := handlers.NewHandler(userService)
+	router := NewRouter(handler)
+
+	username := "testuser_update"
+	password := "ValidPasswd123!"
+	user, err := userService.RegisterUser(context.Background(), username, password)
+	if err != nil {
+		t.Fatalf("Failed to register user: %v", err)
+	}
+
+	defer repository.CleanUpUser(t, user.ID, repo)
+
+	// Authenticate user
+	token, err := auth.GenerateToken(user)
+	if err != nil {
+		t.Fatalf("Failed to generate token: %v", err)
+	}
+
+	newUsername := "updateduser"
+	reqBody := `{"username":"` + newUsername + `"}`
+
+	req := httptest.NewRequest("PUT", "/me/update", strings.NewReader(reqBody))
+	req.Header.Set("Authorization", "Bearer " + token)
+	req.Header.Set("Content-Type", "application/json")
+
+	rr := httptest.NewRecorder()
+	router.ServeHTTP(rr, req)
+
+	if rr.Code != http.StatusOK {
+		t.Fatalf("Expected status 200 OK, got %d", rr.Code)
+	}
+
+	// Check response validity
+	var response map[string]interface{}
+	if err := json.NewDecoder(rr.Body).Decode(&response); err != nil {
+		t.Fatalf("Failed to decode response: %v", err)
+	}
+
+	if response["username"] != newUsername {
+		t.Errorf("Expected updated username %s, got %s", newUsername, response["username"])
+	}
+}

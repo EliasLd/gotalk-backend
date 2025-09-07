@@ -1,20 +1,19 @@
 package http
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
-	"context"
 
-//	apphttp "github.com/EliasLd/gotalk-backend/internal/http"
+	//	apphttp "github.com/EliasLd/gotalk-backend/internal/http"
 	"github.com/EliasLd/gotalk-backend/internal/auth"
 	"github.com/EliasLd/gotalk-backend/internal/handlers"
-	"github.com/EliasLd/gotalk-backend/internal/service"
 	"github.com/EliasLd/gotalk-backend/internal/repository"
+	"github.com/EliasLd/gotalk-backend/internal/service"
 	"github.com/google/uuid"
-
 )
 
 func TestGetMeRoute(t *testing.T) {
@@ -22,7 +21,7 @@ func TestGetMeRoute(t *testing.T) {
 	userService := service.NewUserService(repo)
 	handler := handlers.NewHandler(userService)
 	router := NewRouter(handler)
-	
+
 	username := "testuser_GetMeRoute"
 	password := "ValidPasswd123!"
 	user, err := userService.RegisterUser(nil, username, password)
@@ -182,7 +181,7 @@ func TestLoginRoute(t *testing.T) {
 	userService := service.NewUserService(repo)
 	handler := handlers.NewHandler(userService)
 	router := NewRouter(handler)
-	
+
 	username := "testuser_login"
 	password := "ValidPasswd123!"
 
@@ -232,30 +231,30 @@ func TestLoginRouteFailures(t *testing.T) {
 
 	defer repository.CleanUpUser(t, user.ID, repo)
 
-	tests := []struct{
-		name		string
-		body		string
-		expectedStatus	int
+	tests := []struct {
+		name           string
+		body           string
+		expectedStatus int
 	}{
 		{
-			name:		"Unknown user",
-			body:		`{"username":"unknown","password":"doesntmatter"}`,
-			expectedStatus:	http.StatusUnauthorized,
+			name:           "Unknown user",
+			body:           `{"username":"unknown","password":"doesntmatter"}`,
+			expectedStatus: http.StatusUnauthorized,
 		},
 		{
-			name:		"Wrong password",
+			name:           "Wrong password",
 			body:           `{"username":"` + username + `","password":"WrongPassword1!"}`,
 			expectedStatus: http.StatusUnauthorized,
 		},
 		{
-			name:		"Malformed JSON",
-			body:		`{"username": "badjson", "password": }`,
-			expectedStatus:	http.StatusBadRequest,
+			name:           "Malformed JSON",
+			body:           `{"username": "badjson", "password": }`,
+			expectedStatus: http.StatusBadRequest,
 		},
 		{
-			name:		"Missing fields",
-			body:		`{"username": "no_password"}`,
-			expectedStatus:	http.StatusUnauthorized,
+			name:           "Missing fields",
+			body:           `{"username": "no_password"}`,
+			expectedStatus: http.StatusUnauthorized,
 		},
 	}
 
@@ -299,7 +298,7 @@ func TestUpdateMeRoute_Username(t *testing.T) {
 	reqBody := `{"username":"` + newUsername + `"}`
 
 	req := httptest.NewRequest("PUT", "/me/update", strings.NewReader(reqBody))
-	req.Header.Set("Authorization", "Bearer " + token)
+	req.Header.Set("Authorization", "Bearer "+token)
 	req.Header.Set("Content-Type", "application/json")
 
 	rr := httptest.NewRecorder()
@@ -317,5 +316,61 @@ func TestUpdateMeRoute_Username(t *testing.T) {
 
 	if response["username"] != newUsername {
 		t.Errorf("Expected updated username %s, got %s", newUsername, response["username"])
+	}
+}
+
+func TestUpdateMeRoute_Password(t *testing.T) {
+	repo := repository.SetupTest(t)
+	userService := service.NewUserService(repo)
+	handler := handlers.NewHandler(userService)
+	router := NewRouter(handler)
+
+	username := "testuser_update_pwd"
+	oldPassword := "ValidPasswd123!"
+	user, err := userService.RegisterUser(context.Background(), username, oldPassword)
+	if err != nil {
+		t.Fatalf("Failed to register user: %v", err)
+	}
+
+	defer repository.CleanUpUser(t, user.ID, repo)
+
+	// Authenticate user
+	token, err := auth.GenerateToken(user)
+	if err != nil {
+		t.Fatalf("Failed to generate token: %v", err)
+	}
+
+	newPassword := "NewValidPasswd456!"
+	reqBody := `{"password":"` + newPassword + `"}`
+
+	req := httptest.NewRequest("PUT", "/me/update", strings.NewReader(reqBody))
+	req.Header.Set("Authorization", "Bearer "+token)
+	req.Header.Set("Content-Type", "application/json")
+
+	rr := httptest.NewRecorder()
+	router.ServeHTTP(rr, req)
+
+	if rr.Code != http.StatusOK {
+		t.Fatalf("Expected status 200 OK, got %d", rr.Code)
+	}
+
+	// Check response validity
+	var response map[string]interface{}
+	if err := json.NewDecoder(rr.Body).Decode(&response); err != nil {
+		t.Fatalf("Failed to decode response: %v", err)
+	}
+
+	if response["username"] != username {
+		t.Errorf("Username should not have changed, expected %s, got %s", username, response["username"])
+	}
+
+	// Now try logging in with the new password
+	loggedInUser, err := userService.AuthenticateUser(context.Background(), username, newPassword)
+	if err != nil {
+		t.Fatalf("Failed to authenticate with new password: %v", err)
+	}
+
+	if loggedInUser.ID != user.ID {
+		t.Errorf("Authenticated user ID mismatch, expected %s, got %s", user.ID, loggedInUser.ID)
 	}
 }

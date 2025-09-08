@@ -12,6 +12,7 @@ import (
 // Contract for messag data access
 type MessageRepository interface {
 	CreateMessage(ctx context.Context, message *models.Message) error
+	GetMessagesByConversation(ctx context.Context, conversationID uuid.UUID) ([]*models.Message, error)
 }
 
 // Concrete implementation
@@ -47,4 +48,36 @@ func (r *messageRepository) CreateMessage(ctx context.Context, message *models.M
 	)
 
 	return err
+}
+
+// Retrieves all messages from a conversation
+func (r *messageRepository) GetMessagesByConversation(ctx context.Context, conversationID uuid.UUID) ([]*models.Message, error) {
+	query := `
+		SELECT id, conversation_id, sender_id, content, created_at
+		FROM messages
+		WHERE conversation_id = $1
+		ORDER BY created_at ASC
+	`
+
+	rows, err := r.db.Query(ctx, query, conversationID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var messages []*models.Message
+	for rows.Next() {
+		var msg models.Message
+		if err := rows.Scan(
+			&msg.ID,
+			&msg.ConversationID,
+			&msg.SenderID,
+			&msg.Content,
+			&msg.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		messages = append(messages, &msg)
+	}
+	return messages, nil
 }

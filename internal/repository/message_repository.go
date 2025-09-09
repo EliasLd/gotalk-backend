@@ -81,3 +81,9 @@ func (r *messageRepository) GetMessagesByConversation(ctx context.Context, conve
 	}
 	return messages, nil
 }
+
+func (r *messageRepository) DeleteMessage(ctx context.Context, id uuid.UUID) error {
+	query := `DELETE FROM messages WHERE id = $1`
+	_, err := r.db.Exec(ctx, query, id)
+	return err
+}

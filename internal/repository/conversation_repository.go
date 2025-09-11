@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/EliasLd/gotalk-backend/internal/models"
@@ -12,6 +13,7 @@ import (
 // Contract for conversation data access
 type ConversationRepository interface {
 	CreateConversation(ctx context.Context, conv *models.Conversation) error
+	GetConversationByID(ctx context.Context, id uuid.UUID) (*models.Conversation, error)
 }
 
 // Concrete implementation
@@ -46,5 +48,23 @@ func (r *conversationRepository) CreateConversation(ctx context.Context, conv *m
 	)
 
 	return err
+}
+
+func (r *conversationRepository) GetConversationByID(ctx context.Context, id uuid.UUID) (*models.Conversation, error) {
+	query := `
+		SELECT id, is_public, name, created_at
+		FROM conversations
+		WHERE id = $1
+	`
+
+	row := r.db.QueryRow(ctx, query, id)
+
+	var conv models.Conversation
+	err := row.Scan(&conv.ID, conv.IsPublic, conv.Name, conv.CreatedAt)
+	if err != nil {
+		return nil, fmt.Errorf("Could not get conversation: %w", err)
+	}
+
+	return &conv, nil
 }
 

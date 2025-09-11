@@ -14,6 +14,7 @@ import (
 type ConversationRepository interface {
 	CreateConversation(ctx context.Context, conv *models.Conversation) error
 	GetConversationByID(ctx context.Context, id uuid.UUID) (*models.Conversation, error)
+	DeleteConversation(ctx context.Context, id uuid.UUID) error
 }
 
 // Concrete implementation
@@ -68,3 +69,8 @@ func (r *conversationRepository) GetConversationByID(ctx context.Context, id uui
 	return &conv, nil
 }
 
+func (r *conversationRepository) DeleteConversation(ctx context.Context, id uuid.UUID) error {
+	query := `DELETE FROM conversations WHERE id = $1`
+	_, err := r.db.Exec(ctx, query, id)
+	return err
+}

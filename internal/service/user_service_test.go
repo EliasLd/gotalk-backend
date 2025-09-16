@@ -19,11 +19,12 @@ type testUserService struct {
 func setupService(t *testing.T) testUserService {
 	t.Helper()
 
-	repo := repository.SetupTest(t)
+	db := repository.SetupTest(t)
+	repo := repository.NewUserRepository(db)
 
-	return testUserService {
-		UserService:	NewUserService(repo),
-		repo:		repo,
+	return testUserService{
+		UserService: NewUserService(repo),
+		repo:        repo,
 	}
 }
 
@@ -62,7 +63,7 @@ func TestRegisterUser_UsernameAlreadyExists(t *testing.T) {
 
 	newUser, err := s.RegisterUser(context.Background(), username, password)
 	if err != errors.ErrUserAlreadyExists {
-		t.Fatalf("expected ErrUserAlreadyExists, got %v", err)	
+		t.Fatalf("expected ErrUserAlreadyExists, got %v", err)
 	}
 	if newUser != nil {
 		t.Errorf("Expected no user, got %v", newUser)
@@ -75,9 +76,9 @@ func TestRegisterUser_InvalidPasswords(t *testing.T) {
 	username := "weakuser"
 
 	tests := []struct {
-		name		string
-		password	string
-		wantErr 	error
+		name     string
+		password string
+		wantErr  error
 	}{
 		{
 			name:     "Too short",
@@ -108,7 +109,7 @@ func TestRegisterUser_InvalidPasswords(t *testing.T) {
 
 	for _, test_case := range tests {
 		t.Run(test_case.name, func(t *testing.T) {
-			_, err := s.RegisterUser(context.Background(), username + "_" + test_case.name, test_case.password)
+			_, err := s.RegisterUser(context.Background(), username+"_"+test_case.name, test_case.password)
 
 			if err == nil {
 				t.Fatalf("Expected error %v, got nil", test_case.wantErr)
@@ -155,7 +156,6 @@ func TestGetUserByID_Bad_ID(t *testing.T) {
 		t.Errorf("Expeceted no user, got %v", user)
 	}
 }
-
 
 func TestGetUserByUsername_Success(t *testing.T) {
 	s := setupService(t)
@@ -228,9 +228,9 @@ func TestUpdateUser(t *testing.T) {
 	username = "testuser_new_user"
 	password = "newValidPass123!"
 
-	input := UpdateUserInput {
-		Username:	&username,
-		Password:	&password,
+	input := UpdateUserInput{
+		Username: &username,
+		Password: &password,
 	}
 
 	user, err = s.UpdateUser(context.Background(), user.ID, input)
@@ -242,7 +242,6 @@ func TestUpdateUser(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Expected no error, got: %v", err)
 	}
-
 
 	if check_user.Username != username {
 		t.Errorf("Expected username to be updated to %s, got %s", username, check_user.Username)

@@ -17,7 +17,8 @@ import (
 )
 
 func TestGetMeRoute(t *testing.T) {
-	repo := repository.SetupTest(t)
+	db := repository.SetupTest(t)
+	repo := repository.NewUserRepository(db)
 	userService := service.NewUserService(repo)
 	handler := handlers.NewHandler(userService)
 	router := NewRouter(handler)
@@ -57,7 +58,8 @@ func TestGetMeRoute(t *testing.T) {
 }
 
 func TestGetMe_Unauthorized(t *testing.T) {
-	repo := repository.SetupTest(t)
+	db := repository.SetupTest(t)
+	repo := repository.NewUserRepository(db)
 	userService := service.NewUserService(repo)
 	handler := handlers.NewHandler(userService)
 	router := NewRouter(handler)
@@ -76,7 +78,8 @@ func TestGetMe_Unauthorized(t *testing.T) {
 }
 
 func TestRegisterRoute(t *testing.T) {
-	repo := repository.SetupTest(t)
+	db := repository.SetupTest(t)
+	repo := repository.NewUserRepository(db)
 	userService := service.NewUserService(repo)
 	handler := handlers.NewHandler(userService)
 	router := NewRouter(handler)
@@ -118,7 +121,8 @@ func TestRegisterRoute(t *testing.T) {
 }
 
 func TestRegisterRoute_UserAlreadyExists(t *testing.T) {
-	repo := repository.SetupTest(t)
+	db := repository.SetupTest(t)
+	repo := repository.NewUserRepository(db)
 	userService := service.NewUserService(repo)
 	handler := handlers.NewHandler(userService)
 	router := NewRouter(handler)
@@ -152,7 +156,8 @@ func TestRegisterRoute_UserAlreadyExists(t *testing.T) {
 }
 
 func TestRegisterRoute_InvalidPassword(t *testing.T) {
-	repo := repository.SetupTest(t)
+	db := repository.SetupTest(t)
+	repo := repository.NewUserRepository(db)
 	userService := service.NewUserService(repo)
 	handler := handlers.NewHandler(userService)
 	router := NewRouter(handler)
@@ -177,7 +182,8 @@ func TestRegisterRoute_InvalidPassword(t *testing.T) {
 }
 
 func TestLoginRoute(t *testing.T) {
-	repo := repository.SetupTest(t)
+	db := repository.SetupTest(t)
+	repo := repository.NewUserRepository(db)
 	userService := service.NewUserService(repo)
 	handler := handlers.NewHandler(userService)
 	router := NewRouter(handler)
@@ -217,7 +223,8 @@ func TestLoginRoute(t *testing.T) {
 }
 
 func TestLoginRouteFailures(t *testing.T) {
-	repo := repository.SetupTest(t)
+	db := repository.SetupTest(t)
+	repo := repository.NewUserRepository(db)
 	userService := service.NewUserService(repo)
 	handler := handlers.NewHandler(userService)
 	router := NewRouter(handler)
@@ -274,7 +281,8 @@ func TestLoginRouteFailures(t *testing.T) {
 }
 
 func TestUpdateMeRoute_Username(t *testing.T) {
-	repo := repository.SetupTest(t)
+	db := repository.SetupTest(t)
+	repo := repository.NewUserRepository(db)
 	userService := service.NewUserService(repo)
 	handler := handlers.NewHandler(userService)
 	router := NewRouter(handler)
@@ -320,7 +328,8 @@ func TestUpdateMeRoute_Username(t *testing.T) {
 }
 
 func TestUpdateMeRoute_Password(t *testing.T) {
-	repo := repository.SetupTest(t)
+	db := repository.SetupTest(t)
+	repo := repository.NewUserRepository(db)
 	userService := service.NewUserService(repo)
 	handler := handlers.NewHandler(userService)
 	router := NewRouter(handler)

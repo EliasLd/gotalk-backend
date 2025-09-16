@@ -1,15 +1,16 @@
 package repository
 
 import (
-	"testing"
-	"os"
 	"context"
 	"fmt"
+	"os"
+	"testing"
 	"time"
 
-	"github.com/EliasLd/gotalk-backend/internal/models"
 	"github.com/EliasLd/gotalk-backend/internal/database"
+	"github.com/EliasLd/gotalk-backend/internal/models"
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/joho/godotenv"
 )
 
@@ -19,8 +20,8 @@ import (
 // .env file should be located in the project's root directory
 var env_file_path string = "../../.env"
 
-// Helper function used to prepare the testing environment
-func SetupTest(t *testing.T) UserRepository {
+// Helper function used to prepare the testing environment for user repository
+func SetupTest(t *testing.T) *pgxpool.Pool {
 	t.Helper()
 
 	if err := godotenv.Load(env_file_path); err != nil {
@@ -37,8 +38,7 @@ func SetupTest(t *testing.T) UserRepository {
 		t.Fatalf("Failed to connect to database: %v", err)
 	}
 
-	return NewUserRepository(database.DB)
-
+	return database.DB
 }
 
 // Helper function used to clean database by deleting a newly added user
@@ -53,12 +53,11 @@ func CleanUpUser(t *testing.T, id uuid.UUID, repo UserRepository) {
 // Helper function used to create a new user for each test
 func NewTestUser(t *testing.T, username string) *models.User {
 	t.Helper()
-	return &models.User {
-		ID:		uuid.New(),
-		Username:	username,
-		Password:	"some_password",
-		CreatedAt:	time.Now(),
-		UpdatedAt:	time.Now(),
+	return &models.User{
+		ID:        uuid.New(),
+		Username:  username,
+		Password:  "some_password",
+		CreatedAt: time.Now(),
+		UpdatedAt: time.Now(),
 	}
 }
-

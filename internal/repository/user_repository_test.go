@@ -8,9 +8,10 @@ import (
 )
 
 func TestCreateUser(t *testing.T) {
-	repo := SetupTest(t)
+	db := SetupTest(t)
+	repo := NewUserRepository(db)
 
-	user := NewTestUser(t, "testuser_create")	
+	user := NewTestUser(t, "testuser_create")
 	// Clean up at test end
 	defer CleanUpUser(t, user.ID, repo)
 
@@ -22,7 +23,8 @@ func TestCreateUser(t *testing.T) {
 }
 
 func TestDeleteUser(t *testing.T) {
-	repo := SetupTest(t)
+	db := SetupTest(t)
+	repo := NewUserRepository(db)
 
 	user := NewTestUser(t, "testuser_delete")
 
@@ -47,7 +49,8 @@ func TestDeleteUser(t *testing.T) {
 }
 
 func TestGetUserByUsername(t *testing.T) {
-	repo :=  SetupTest(t)
+	db := SetupTest(t)
+	repo := NewUserRepository(db)
 
 	user := NewTestUser(t, "testuser_lookup_by_username")
 
@@ -75,10 +78,11 @@ func TestGetUserByUsername(t *testing.T) {
 }
 
 func TestGetUserByID(t *testing.T) {
-	repo := SetupTest(t)
+	db := SetupTest(t)
+	repo := NewUserRepository(db)
 
 	user := NewTestUser(t, "testuser_lookup_by_id")
-	
+
 	defer CleanUpUser(t, user.ID, repo)
 
 	if err := repo.CreateUser(context.Background(), user); err != nil {
@@ -102,7 +106,8 @@ func TestGetUserByID(t *testing.T) {
 }
 
 func TestCreateUserSameUsername(t *testing.T) {
-	repo := SetupTest(t)
+	db := SetupTest(t)
+	repo := NewUserRepository(db)
 
 	user1 := NewTestUser(t, "same_name")
 	user2 := NewTestUser(t, "same_name")

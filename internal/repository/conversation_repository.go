@@ -61,7 +61,7 @@ func (r *conversationRepository) GetConversationByID(ctx context.Context, id uui
 	row := r.db.QueryRow(ctx, query, id)
 
 	var conv models.Conversation
-	err := row.Scan(&conv.ID, conv.IsPublic, conv.Name, conv.CreatedAt)
+	err := row.Scan(&conv.ID, &conv.IsPublic, &conv.Name, &conv.CreatedAt)
 	if err != nil {
 		return nil, fmt.Errorf("Could not get conversation: %w", err)
 	}

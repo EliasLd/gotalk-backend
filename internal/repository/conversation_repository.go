@@ -16,6 +16,7 @@ type ConversationRepository interface {
 	GetConversationByID(ctx context.Context, id uuid.UUID) (*models.Conversation, error)
 	DeleteConversation(ctx context.Context, id uuid.UUID) error
 	ListPublicConversations(ctx context.Context) ([]*models.Conversation, error)
+	AddMember(ctx context.Context, conversationID, userID uuid.UUID) error
 }
 
 // Concrete implementation
@@ -96,4 +97,19 @@ func (r *conversationRepository) ListPublicConversations(ctx context.Context) ([
 		conversations = append(conversations, &conv)
 	}
 	return conversations, nil
+}
+
+func (r *conversationRepository) AddMember(ctx context.Context, conversationID, userID uuid.UUID) error {
+	query := `
+		INSERT INTO conversation_members (user_id, conversation_id, joined_at)
+		VALUES ($1, $2, NOW())
+		ON CONFLICT DO NOTHING
+	`
+
+	_, err := r.db.Exec(ctx, query, userID, conversationID)
+	if err != nil {
+		return fmt.Errorf("Could not add member: %w", err)
+	}
+
+	return nil
 }

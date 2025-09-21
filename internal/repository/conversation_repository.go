@@ -15,6 +15,7 @@ type ConversationRepository interface {
 	CreateConversation(ctx context.Context, conv *models.Conversation) error
 	GetConversationByID(ctx context.Context, id uuid.UUID) (*models.Conversation, error)
 	DeleteConversation(ctx context.Context, id uuid.UUID) error
+	ListPublicConversations(ctx context.Context) ([]*models.Conversation, error)
 }
 
 // Concrete implementation
@@ -73,4 +74,26 @@ func (r *conversationRepository) DeleteConversation(ctx context.Context, id uuid
 	query := `DELETE FROM conversations WHERE id = $1`
 	_, err := r.db.Exec(ctx, query, id)
 	return err
+}
+
+func (r *conversationRepository) ListPublicConversations(ctx context.Context) ([]*models.Conversation, error) {
+	query := `
+		SELECT id, is_public, name, created_at FROM conversations
+		WHERE is_public = true
+	`
+
+	rows, err := r.db.Query(ctx, query)
+	if err != nil {
+		return nil, fmt.Errorf("Could not query public conversations: %w", err)
+	}
+
+	var conversations []*models.Conversation
+	for rows.Next() {
+		var conv models.Conversation
+		if err := rows.Scan(&conv.ID, &conv.IsPublic, &conv.Name, &conv.CreatedAt); err != nil {
+			return nil, fmt.Errorf("Could not scan conversation: %w", err)
+		}
+		conversations = append(conversations, &conv)
+	}
+	return conversations, nil
 }
